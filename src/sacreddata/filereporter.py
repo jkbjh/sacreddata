@@ -71,12 +71,12 @@ class FileRun(object):
     def info(self):
         str_format = "%Y-%m-%dT%H:%M:%S.%f"
         start_time = datetime.datetime.strptime(self["start_time"], str_format)
-        stop_time = datetime.datetime.strptime(self['stop_time'], str_format)
+        stop_time = datetime.datetime.strptime(self['stop_time'], str_format) if self['stop_time'] else None
         return dict(
             run_directory=self._run_directory,
             name=self["experiment.name"],
             start_time=start_time,
-            duration=stop_time - start_time)
+            duration=stop_time - start_time if stop_time else None)
 
     @property
     def artifacts(self):
@@ -117,12 +117,19 @@ class FileReporter(object):
             raise RuntimeError(("_sources directory not found, probably "
                                 "not a sacred %r results directory!") %
                                (self.base_directory,))
+        self._run_json = {}
+        self.update()
 
+    def update(self):
         self._runs = [run for run in os.listdir(self.base_directory) if run.isdigit()]
         self._runs.sort(key=lambda x: int(x))
+        old_json = self._run_json
         self._run_json = {}
         for run in self._runs:
-            self._run_json[run] = _slurp_json(os.path.join(self.base_directory, run, "run.json"))
+            if run in old_json:
+                self._run_json[run] = old_json[run]  # use already loaded version
+            else:
+                self._run_json[run] = _slurp_json(os.path.join(self.base_directory, run, "run.json"))
 
     def __getitem__(self, run_key):
         return FileRun(self.base_directory, os.path.join(self.base_directory, run_key), self._run_json[run_key])
