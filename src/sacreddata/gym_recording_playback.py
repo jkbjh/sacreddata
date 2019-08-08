@@ -7,7 +7,7 @@ import numpy as np
 
 def scan_recorded_traces(run, callback, tmp_directory=None):
     if tmp_directory is None:
-        tmp_directory = tempfile.mkdtemp()
+        tmp_directory = tempfile.mkdtemp(prefix="sacristan_tmp")
     trace_artifacts = [x for x in run.artifacts if x.startswith("openaigym.trace")]
     tmp_files = run.extract_artifacts(tmp_directory, trace_artifacts)
     playback.scan_recorded_traces(tmp_directory, callback)
