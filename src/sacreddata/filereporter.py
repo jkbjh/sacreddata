@@ -4,7 +4,7 @@ import dictor
 import datetime
 import io
 import shutil
-
+import pandas as pd
 
 def _slurp_json(filename):
     with open(filename) as fp:
@@ -42,6 +42,9 @@ class JSONObj(object):
     def keys(self):
         return self._json.keys()
 
+    def items(self):
+        return self._json.items()
+
     def __repr__(self):
         return "%s %r>" % (super(JSONObj, self).__repr__()[:-1],
                            self.keys())
@@ -49,8 +52,8 @@ class JSONObj(object):
 
 class FileRun(object):
     def __init__(self, base_directory, run_directory, run_json):
-        self._base_directory = base_directory
-        self._run_directory = run_directory
+        self._base_directory = os.path.expanduser(base_directory)
+        self._run_directory = os.path.expanduser(run_directory)
         self._run_json = run_json
         self._artifacts = set(self["artifacts"])
 
@@ -111,7 +114,7 @@ class FileRun(object):
 
 class FileReporter(object):
     def __init__(self, directory):
-        self.base_directory = directory
+        self.base_directory = os.path.expanduser(directory)
         self.sources_directory = os.path.join(self.base_directory, "_sources")
         if not os.path.exists(self.sources_directory):
             raise RuntimeError(("_sources directory not found, probably "
@@ -129,10 +132,25 @@ class FileReporter(object):
             if run in old_json:
                 self._run_json[run] = old_json[run]  # use already loaded version
             else:
-                self._run_json[run] = _slurp_json(os.path.join(self.base_directory, run, "run.json"))
+                json_filename = os.path.join(self.base_directory, run, "run.json")
+                if os.path.exists(json_filename):
+                    self._run_json[run] = _slurp_json(json_filename)
 
     def __getitem__(self, run_key):
         return FileRun(self.base_directory, os.path.join(self.base_directory, run_key), self._run_json[run_key])
 
     def keys(self):
         return self._runs
+
+    def as_df(self):
+        result = []
+        for key in self.keys():
+            tr = self[key]
+            values = dict(run_key=key,
+                name=tr.info()["name"],
+                status=tr["status"],
+                start_time=tr["start_time"],
+                )
+            values.update(dict(tr.config.items()))
+            result.append(values)
+        return pd.DataFrame(result)
