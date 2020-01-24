@@ -131,13 +131,16 @@ class FileReporter(object):
         for run in self._runs:
             if run in old_json:
                 self._run_json[run] = old_json[run]  # use already loaded version
-            else:
-                json_filename = os.path.join(self.base_directory, run, "run.json")
-                if os.path.exists(json_filename):
-                    self._run_json[run] = _slurp_json(json_filename)
+
+    def _get_run_json(self, run):
+        assert run in self._runs
+        json_filename = os.path.join(self.base_directory, run, "run.json")
+        if os.path.exists(json_filename):
+            self._run_json[run] = _slurp_json(json_filename)
+        return self._run_json[run]
 
     def __getitem__(self, run_key):
-        return FileRun(self.base_directory, os.path.join(self.base_directory, run_key), self._run_json[run_key])
+        return FileRun(self.base_directory, os.path.join(self.base_directory, run_key), self._get_run_json(run_key))
 
     def keys(self):
         return self._runs
