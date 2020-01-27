@@ -79,7 +79,7 @@ class FileRun(object):
             run_directory=self._run_directory,
             name=self["experiment.name"],
             start_time=start_time,
-            duration=stop_time - start_time if stop_time else None)
+            duration=(stop_time - start_time) if stop_time is not None else None)
 
     @property
     def artifacts(self):
@@ -149,10 +149,13 @@ class FileReporter(object):
         result = []
         for key in self.keys():
             tr = self[key]
+            info = tr.info()
             values = dict(run_key=key,
-                name=tr.info()["name"],
+                name=info["name"],
                 status=tr["status"],
-                start_time=tr["start_time"],
+                start_time=info["start_time"],
+                duration=info["duration"],
+
                 )
             values.update(dict(tr.config.items()))
             result.append(values)
