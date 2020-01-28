@@ -18,7 +18,7 @@ def scan_recorded_traces(run, callback, tmp_directory=None):
 class AllTraces(object):
     @classmethod
     def all_traces_from_run(cls, run):
-        traces = AllTraces()
+        all_traces = AllTraces()
         scan_recorded_traces(run, all_traces.add_trace)
 
     def __init__(self):
@@ -28,6 +28,7 @@ class AllTraces(object):
         self._rewards = []
         self.rewards = None
         self.observations = None
+        self.observations1 = None
         self.actions = None
         self.last_incomplete = None
 
@@ -38,15 +39,11 @@ class AllTraces(object):
         else:
             self.last_incomplete = False
 
-        stacker = lambda data: np.stack(data, axis=0)
-        if self.last_incomplete:
-            self.observations = stacker(self._observations[:-1])
-            self.actions = stacker(self._actions[:-1])
-            self.rewards = stacker(self._rewards[:-1])
-        else:
-            self.observations = stacker(self._observations)
-            self.actions = stacker(self._actions)
-            self.rewards = stacker(self._rewards)
+        stacker = lambda data: np.concatenate(data, axis=0)
+        self.observations = stacker([o[:-1] for o in self._observations])
+        self.actions = stacker(self._actions)
+        self.rewards = stacker(self._rewards)
+        self.observations1 = stacker([o[1:] for o in self._observations])
 
     def add_trace(self, observations, actions, rewards):
         observations, actions, rewards = map(np.array, (observations, actions, rewards))
