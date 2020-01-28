@@ -5,6 +5,27 @@ import datetime
 import io
 import shutil
 import pandas as pd
+import warnings
+
+
+class BuildCommandMixin(object):
+    def build_command(self):
+        vals = dict(self.run["experiment"])
+        vals.update(self.run["meta"])
+        vals = {k: v for k, v in vals.items() if v}
+        vals["options"] = {k: v for k, v in vals["options"].items() if v}
+        update = vals["options"].pop("UPDATE", {})
+        updater = ""
+        if vals["options"].pop("with", False):
+            updater += " with "
+            updater += " ".join(update)
+        options = vals.pop("options", {})
+        option_str = " ".join(["%s %s" % (k, v) for k, v in options.items()])
+        vals["use_options"] = option_str
+        vals["cfg_updates"] = updater
+        command = "{base_dir}/{mainfile} {command} {use_options} {cfg_updates}".format(**vals)
+        return command
+
 
 def _slurp_json(filename):
     with open(filename) as fp:
@@ -50,7 +71,7 @@ class JSONObj(object):
                            self.keys())
 
 
-class FileRun(object):
+class FileRun(BuildCommandMixin, object):
     def __init__(self, base_directory, run_directory, run_json):
         self._base_directory = os.path.expanduser(base_directory)
         self._run_directory = os.path.expanduser(run_directory)
@@ -64,6 +85,10 @@ class FileRun(object):
     @lazy_property
     def metrics(self):
         return JSONObj.slurp(os.path.join(self._run_directory, "metrics.json"))
+
+    @property
+    def run(self):
+        return JSONObj(self._run_json)
 
     def __getitem__(self, value_path):
         return dictor.dictor(self._run_json, value_path)
@@ -140,6 +165,10 @@ class FileReporter(object):
         return self._run_json[run]
 
     def __getitem__(self, run_key):
+        if not isinstance(run_key, str):
+            conv_key = str(run_key)
+            warnings.warn("Got item %r as run_key but expected a string, will be converted to: %r" % (run_key, conv_key))
+            run_key = conv_key
         return FileRun(self.base_directory, os.path.join(self.base_directory, run_key), self._get_run_json(run_key))
 
     def keys(self):
