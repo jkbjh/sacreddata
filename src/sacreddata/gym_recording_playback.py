@@ -29,6 +29,8 @@ class AllTraces(object):
         self.rewards = None
         self.observations = None
         self.observations1 = None
+        self.returns = None
+        self.episode_lengths = None
         self.actions = None
         self.last_incomplete = None
 
@@ -44,6 +46,8 @@ class AllTraces(object):
         self.actions = stacker(self._actions)
         self.rewards = stacker(self._rewards)
         self.observations1 = stacker([o[1:] for o in self._observations])
+        self.returns = np.array([np.sum(x) for x in self._rewards])
+        self.episode_lengths = np.array([len(x) for x in self._rewards])
 
     def add_trace(self, observations, actions, rewards):
         observations, actions, rewards = map(np.array, (observations, actions, rewards))
