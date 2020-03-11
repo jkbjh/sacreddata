@@ -1,5 +1,8 @@
 import os
-import json
+try:
+    import ujson as json
+except ImportError:
+    import json
 import dictor
 import datetime
 import io
@@ -174,9 +177,12 @@ class FileReporter(object):
     def keys(self):
         return self._runs
 
-    def as_df(self):
+    def as_df(self, keyfilter=None):
         result = []
-        for key in self.keys():
+        keys = self.keys()
+        if keyfilter is not None:
+            keys = keyfilter(keys)
+        for key in keys:
             tr = self[key]
             info = tr.info()
             values = dict(run_key=key,
